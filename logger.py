@@ -28,11 +28,7 @@ class InterviewLogger:
 
     @staticmethod
     def _pick_default_output_filename() -> str:
-        for i in range(1, MAX_SCENARIOS + 1):
-            candidate = f"interview_log_{i}.json"
-            if not os.path.exists(candidate):
-                return candidate
-        return f"interview_log_{MAX_SCENARIOS}.json"
+        return f"interview_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
 
     def add_turn(
         self, 
@@ -91,8 +87,12 @@ class InterviewLogger:
         try:
             os.makedirs(LOGS_DIR, exist_ok=True)
             if not filename:
-                filename = self.output_filename
-            file_path = filename
+                filename = f"interview_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+
+            if os.path.dirname(filename):
+                file_path = filename
+            else:
+                file_path = os.path.join(LOGS_DIR, filename)
 
             #     filename = f"interview_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
             # file_path = os.path.join(LOGS_DIR, filename)

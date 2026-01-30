@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 def observer_node(state: AgentState, observer_agent) -> dict:
     if not state.get('messages'):
-        print("No messages in observer....")
         return {
             "internal_thoughts": ["[Observer]: Начало интервью. Инициализация анализа.\n"],
             "observer_instructions": "Кандидат ещё ничего не писал. "

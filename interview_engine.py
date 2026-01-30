@@ -193,11 +193,10 @@ class InterviewEngine:
         # Каждая мысль должна заканчиваться переводом строки.
         thoughts_to_log = "".join(new_thoughts) if new_thoughts else ""
 
-        if user_input:
         self.logger.add_turn(
-                agent_msg=agent_visible_message if agent_visible_message else "(вопрос отсутствует)",
+            agent_msg=agent_visible_message if agent_visible_message else "(вопрос отсутствует)",
             user_msg=user_input,
-                thoughts=thoughts_to_log,
+            thoughts=thoughts_to_log,
         )
 
         is_finished = output.get("is_finished", False)

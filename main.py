@@ -33,7 +33,7 @@ def _print_system(message: str) -> None:
 
 
 def _print_interviewer(message: str) -> None:
-    print(f"\nСобеседователь: {message}\n")
+    print(f"\nИнтервьюер: {message}\n")
 
 
 def get_candidate_profile() -> dict:
