@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     candidate_profile: dict
     observer_instructions: str
     current_agent_response: str
+    last_agent_visible_message: str
     difficulty_level: int
     is_finished: bool
     turn_count: int

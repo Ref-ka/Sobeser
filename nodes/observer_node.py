@@ -8,8 +8,9 @@ logger = logging.getLogger(__name__)
 
 def observer_node(state: AgentState, observer_agent) -> dict:
     if not state.get('messages'):
+        print("No messages in observer....")
         return {
-            "internal_thoughts": ["[Observer]: Начало интервью. Инициализация анализа."],
+            "internal_thoughts": ["[Observer]: Начало интервью. Инициализация анализа.\n"],
             "observer_instructions": "Кандидат ещё ничего не писал. "
                                      "Начни интервью с приветствия и первого технического вопроса.",
             "difficulty_level": 2
@@ -23,8 +24,14 @@ def observer_node(state: AgentState, observer_agent) -> dict:
     last_user_msg = state['messages'][-1].content
     
     # Проверка на стоп
-    if "стоп" in last_user_msg.lower():
+    stop_keywords = [
+        "стоп", "фидбэк", "хватит", "заверши", "закончи",
+        "стоп игра", "давай фидбэк", "хочу завершить",
+        "завершить интервью", "закончить интервью", "стоп интервью"
+    ]
+    if any(keyword in last_user_msg.lower() for keyword in stop_keywords):
         return {
+            "internal_thoughts": ["[Observer]: Кандидат запросил завершение интервью. Требуется финальный фидбэк.\n"],
             "is_finished": True
         }
     
@@ -79,12 +86,12 @@ def observer_node(state: AgentState, observer_agent) -> dict:
         logger.debug(f"Observer response generated: {len(analysis)} characters")
         
         return {
-            "internal_thoughts": [f"[Observer]: {analysis}"],
+            "internal_thoughts": [f"[Observer]: {analysis.replace('\n', ' ')}\n"],
             "is_finished": is_finished,
             "difficulty_level": next_difficulty
         }
     except Exception as e:
-        error_msg = "[Observer]: Ошибка анализа"
+        error_msg = "[Observer]: Ошибка анализа\n"
         logger.exception(f"Observer error: {e}")
         return {
             "internal_thoughts": [error_msg],

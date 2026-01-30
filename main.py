@@ -4,11 +4,11 @@ import sys
 from interview_engine import InterviewEngine
 
 
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(message)s",
-#     handlers=[logging.StreamHandler(sys.stdout)],
-# )
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
 
 
 logger = logging.getLogger(__name__)
@@ -77,8 +77,12 @@ def run_interview():
         engine = InterviewEngine()
 
         _print_system("Интервью готово к началу.")
-        _print_system("Начните диалог первым. Для завершения введите 'стоп' или попросите 'фидбэк'.\n")
         state = engine.start_interview(profile)
+        state = engine.bootstrap_first_question(state)
+
+        agent_response = state.get("current_agent_response", "")
+        if agent_response:
+            _print_interviewer(agent_response)
 
         while True:
             try:
@@ -96,26 +100,15 @@ def run_interview():
                 user_input_lower = user_input.lower()
                 if any(keyword in user_input_lower for keyword in stop_keywords):
                     _print_system("Завершаю интервью...\n")
-                    prev_agent_msg = state.get("current_agent_response", "")
-                    engine.logger.add_turn(
-                        agent_msg=prev_agent_msg if prev_agent_msg else "(начало диалога)",
-                        user_msg=user_input,
-                        thoughts=""
-                    )
-                    state["messages"].append(HumanMessage(content=user_input))
-                    state["turn_count"] = state.get("turn_count", 0) + 1
-
-                    output = engine.graph.invoke(state)
-                    if output.get("is_finished"):
-                        feedback = output.get("current_agent_response", "")
+                    state = engine.process_user_input(state, user_input)
+                    if state.get("is_finished"):
+                        feedback = state.get("current_agent_response", "")
                         print(SEPARATOR)
                         print("ФИНАЛЬНЫЙ ФИДБЭК")
                         print(f"{SEPARATOR}\n")
                         print(feedback)
                         print(f"\n{SEPARATOR}\n")
-                        engine.logger.set_final_feedback(feedback)
-                        engine.logger.save_to_file()
-                        engine.logger.save_traces_to_file()
+                        engine.finish_interview(state)
                     break
                 
                 # Обрабатываем ввод пользователя

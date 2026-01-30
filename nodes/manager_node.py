@@ -72,7 +72,8 @@ def manager_node(state: AgentState, manager_agent, observer_agent) -> dict:
         
         return {
             "is_finished": True,
-            "current_agent_response": feedback
+            "current_agent_response": feedback,
+            "internal_thoughts": ["[Manager]: Финальный фидбэк сформирован на основе суммаризированных наблюдений и профиля кандидата.\n"],
         }
     except Exception as e:
         error_feedback = f"""=== ФИНАЛЬНЫЙ ФИДБЭК ===
@@ -81,6 +82,7 @@ def manager_node(state: AgentState, manager_agent, observer_agent) -> dict:
         logger.exception(f"Manager error {e}")
         return {
             "is_finished": True,
-            "current_agent_response": error_feedback
+            "current_agent_response": error_feedback,
+            "internal_thoughts": [f"[Manager]: {error_feedback}\n"],
         }
 

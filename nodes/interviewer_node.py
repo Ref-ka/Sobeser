@@ -64,12 +64,14 @@ def interviewer_node(state: AgentState, interviewer_agent) -> dict:
         return {
             "messages": [response_message],
             "current_agent_response": response_content,
+            "internal_thoughts": ["[Interviewer]: Следующий вопрос сформирован на основе плана интервью, уровня сложности и последней оценки наблюдателя.\n"],
         }
     except Exception as e:
         logger.exception(f"Interviewer error: {e}")
         error_msg = "Извините, произошла техническая ошибка. Пожалуйста, повторите ваш ответ."
         return {
             "messages": [AIMessage(content=error_msg)],
-            "current_agent_response": error_msg
+            "current_agent_response": error_msg,
+            "internal_thoughts": [f"[Interviewer]: {error_msg}\n"],
         }
 

@@ -4,20 +4,35 @@ import logging
 from datetime import datetime
 
 LOGS_DIR = "./logs/"
+MAX_SCENARIOS = 10
 
 
 logger = logging.getLogger(__name__)
 
 
 class InterviewLogger:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        participant_name: str = "Черненко Иван Денисович",
+        output_filename: str | None = None,
+    ):
         self.log_data = {
-            "participant_name": "Черненко Иван Денисович",
+            "participant_name": participant_name,
             "turns": [],
             "final_feedback": ""
         }
         self.trace_events: list[dict] = []
         self.turn_counter = 1
+        self.output_filename = output_filename or self._pick_default_output_filename()
+
+    @staticmethod
+    def _pick_default_output_filename() -> str:
+        for i in range(1, MAX_SCENARIOS + 1):
+            candidate = f"interview_log_{i}.json"
+            if not os.path.exists(candidate):
+                return candidate
+        return f"interview_log_{MAX_SCENARIOS}.json"
 
     def add_turn(
         self, 
@@ -37,6 +52,12 @@ class InterviewLogger:
 
     def set_final_feedback(self, feedback: str):
         self.log_data["final_feedback"] = feedback
+
+    def set_participant_name(self, participant_name: str):
+        self.log_data["participant_name"] = participant_name
+
+    def set_output_filename(self, output_filename: str):
+        self.output_filename = output_filename
 
     def add_trace_event(
         self,
@@ -70,8 +91,15 @@ class InterviewLogger:
         try:
             os.makedirs(LOGS_DIR, exist_ok=True)
             if not filename:
-                filename = f"interview_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-            file_path = os.path.join(LOGS_DIR, filename)
+                filename = self.output_filename
+            file_path = filename
+
+            #     filename = f"interview_log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+            # file_path = os.path.join(LOGS_DIR, filename)
+
+            dir_name = os.path.dirname(file_path)
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
             with open(file=file_path, mode='w', encoding='utf-8') as f:
                 json.dump(self.log_data, f, ensure_ascii=False, indent=2)
             logger.info("\n[Система]: Лог сохранен в %s", filename)

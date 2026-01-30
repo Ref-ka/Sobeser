@@ -32,14 +32,12 @@ class InterviewEngine:
                 search_depth="basic",
             )
             manager_tools = [tavily_tool]
-            planner_tools = [tavily_tool]
         else:
             manager_tools = None
-            planner_tools = None
 
         self.planner_agent = create_agent(
             model=self.llm,
-            tools=planner_tools,
+            tools=None,
             system_prompt=planner_prompt
         )
 
@@ -144,18 +142,42 @@ class InterviewEngine:
             "candidate_profile": candidate_profile,
             "observer_instructions": "",
             "current_agent_response": "",
+            "last_agent_visible_message": "",
             "is_finished": False,
             "turn_count": 0
         }
 
         return initial_state
 
+    def bootstrap_first_question(self, state: dict) -> dict:
+        """Генерирует первый вопрос интервью (инициализация) и НЕ логирует этот шаг."""
+        output = self.graph.invoke(state)
+
+        if "messages" in output:
+            state["messages"] = output["messages"]
+        if "internal_thoughts" in output:
+            state["internal_thoughts"] = output["internal_thoughts"]
+
+        agent_response = output.get("current_agent_response", "")
+        state["current_agent_response"] = agent_response
+        state["last_agent_visible_message"] = agent_response
+
+        state["is_finished"] = output.get("is_finished", False)
+        for key, value in output.items():
+            if key not in ["messages", "internal_thoughts", "topics_covered", "current_agent_response", "is_finished"]:
+                state[key] = value
+
+        return state
+
     def process_user_input(self, state: dict, user_input: str) -> dict:
         old_thoughts = state.get("internal_thoughts", [])
         old_thoughts_len = len(old_thoughts)
 
-        state["messages"].append(HumanMessage(content=user_input))
-        state["turn_count"] = state.get("turn_count", 0) + 1
+        agent_visible_message = state.get("last_agent_visible_message") or state.get("current_agent_response", "")
+
+        if user_input:
+            state["messages"].append(HumanMessage(content=user_input))
+            state["turn_count"] = state.get("turn_count", 0) + 1
 
         # Запускаем граф
         output = self.graph.invoke(state)
@@ -166,20 +188,16 @@ class InterviewEngine:
         # Получаем новые мысли только из этого прохода графа (дельта)
         all_thoughts = output.get("internal_thoughts", old_thoughts)
         new_thoughts = all_thoughts[old_thoughts_len:] if len(all_thoughts) >= old_thoughts_len else all_thoughts
-        
-        # Извлекаем мысли моделей из новых мыслей этого прохода.
-        # Для читаемости финальных логов логируем только Planner/Observer (в порядке появления).
-        model_thoughts = [
-            thought for thought in new_thoughts
-            if ("[Planner]" in thought) or ("[Observer]" in thought)
-        ]
-        thoughts_to_log = "\n".join(model_thoughts) if model_thoughts else ""
 
-        prev_agent_msg = state.get("current_agent_response", "")
+        # Логируем все сгенерированные тексты всех агентов (в порядке появления).
+        # Каждая мысль должна заканчиваться переводом строки.
+        thoughts_to_log = "".join(new_thoughts) if new_thoughts else ""
+
+        if user_input:
         self.logger.add_turn(
-            agent_msg=prev_agent_msg if prev_agent_msg else "(начало диалога)",
+                agent_msg=agent_visible_message if agent_visible_message else "(вопрос отсутствует)",
             user_msg=user_input,
-            thoughts=thoughts_to_log
+                thoughts=thoughts_to_log,
         )
 
         is_finished = output.get("is_finished", False)
@@ -191,6 +209,10 @@ class InterviewEngine:
         if "internal_thoughts" in output:
             state["internal_thoughts"] = output["internal_thoughts"]
         state["current_agent_response"] = agent_response
+
+        # Следующий agent_visible_message — это следующий вопрос интервьюера (если интервью не завершено).
+        if not is_finished:
+            state["last_agent_visible_message"] = agent_response
 
         # Обновляем остальные поля из output
         for key, value in output.items():

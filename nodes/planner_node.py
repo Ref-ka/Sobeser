@@ -5,9 +5,10 @@ from state import AgentState
 
 logger = logging.getLogger(__name__)
 
+
 def planner_node(state: AgentState, planner_agent) -> dict:
     if not state.get('messages'):
-        last_user_msg = ""
+        last_user_msg = "кандидат ещё ничего не писал"
     else:
         last_user_msg = state['messages'][-1].content
     profile = state.get('candidate_profile', {})
@@ -27,13 +28,11 @@ def planner_node(state: AgentState, planner_agent) -> dict:
         messages = [
             SystemMessage(content=context_prompt),
             HumanMessage(content="Составь план интервью на основе предоставленной информации о кандидате."
-                                 "Если доступен веб-поиск, используй инструмент `tavily_search`."
                                  "На забывай контролировать размер плана интервью, не увеличивай его излишне.")
         ]
 
         # Вызываем агента через его граф
         agent_result = planner_agent.invoke({"messages": messages})
-
         # Извлекаем ответ агента
         # Агент возвращает граф с сообщениями, нужно найти последний ответ
         agent_messages = agent_result.get("messages", [])
@@ -54,18 +53,16 @@ def planner_node(state: AgentState, planner_agent) -> dict:
         plan_str = plan.replace('\n', ' ').strip()
 
         plan_thought = plan.strip()
-        if len(plan_thought) > 4000:
-            plan_thought = plan_thought[:4000] + "\n\n[... план обрезан ...]"
 
         return {
             "interview_plan": plan_str,
-            "internal_thoughts": [f"[Planner]: {plan_thought}"],
+            "internal_thoughts": [f"[Planner]: {plan_thought.replace('\n', ' ')}\n"],
         }
     except Exception as e:
         error_msg = "[Planner]: Ошибка планирования"
         logger.exception(f"Planner error: {e}")
         return {
             "interview_plan": error_msg,
-            "internal_thoughts": [error_msg],
+            "internal_thoughts": [error_msg + "\n"],
         }
 
